@@ -3,7 +3,7 @@ include config.mk
 SRC = tanuki.c
 OBJ = ${SRC:.c=}
 
-all: options tanuki
+all: tanuki
 
 options:
 	@echo tanuki build options:
@@ -11,5 +11,5 @@ options:
 	@echo "LDFLAGS  = ${CFLAGS}"
 	@echo "CC       = ${CC}"
 
-tanuki:
+build:
 	${CC} ${CFLAGS} ${LDFLAGS} tanuki.c -o tanuki

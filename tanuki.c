@@ -22,6 +22,11 @@ static void enternotify(XEvent *e);
 
 /* Client managment */
 static Client * wintoclient(Window w);
+static void unmanage(Client *c);
+static void manage(Window w, XWindowAttributes wa);
+static void setfocus(Client *c);
+static void age(Client *c);
+static void mark(Client *c);
 static void setfocus(Client *c);
 static void focus(Client *c);
 
@@ -72,13 +77,13 @@ configurerequest(XEvent *e)
 void
 maprequest(XEvent *e)
 {
-  static XWindoAttributes wa;
-  XMapRequestEvent *ev = &e->maprequest;
+  static XWindowAttributes wa;
+  XMapRequestEvent *ev = &e->xmaprequest;
   Client *c;
 
-  if (!XGetWindowAttribues(dpy, ev->window, &wa) || wa.override_redirect !(wintoclient(ev->window)))
+  if (!XGetWindowAttributes(dpy, ev->window, &wa) || wa.override_redirect)
     return;
-  manage(ev->window);
+  manage(ev->window, wa);
 }
 
 void
@@ -95,18 +100,30 @@ unmapnotify(XEvent *e)
 void
 expose(XEvent *e)
 {
+  XExposeEvent *ev = &e->xexpose;
+  Client *c;
+
+  if(!(c = wintoclient(ev->window)))
+    return;
+  mark(c);
 }
 
 void
 focusin(XEvent *e)
 {
-  XChangeFocusEvent *ev = &e->xfocus;
+  XFocusChangeEvent *ev = &e->xfocus;
   setfocus(focused);
 }
 
 void
 enternotify(XEvent *e)
 {
+  XEnterWindowEvent *ev = &e->xcrossing;
+  Client *c;
+
+  if(!(c = wintoclient(ev->window)) || c == focused)
+      return;
+  focus(c);
 }
 
 /* Client managment */
@@ -129,10 +146,10 @@ manage(Window w, XWindowAttributes wa)
   c = malloc(sizeof(Client));
   
   c->win = w;
-  c->x = wa->x;
-  c->y = wa->y;
-  c->w = wa->width;
-  c->h = wa->height;
+  c->x = wa.x;
+  c->y = wa.y;
+  c->w = wa.width;
+  c->h = wa.height;
   c->ishidden = 0;
   c->isfloating = 0;
   c->isfullscreen = 0;
@@ -166,6 +183,18 @@ age(Client *c)
   c->oldh = c->h;
 }
 
+void unfocus(Client *c)
+{
+  XSetWindowBorderWidth(dpy, c->win, 0);
+}
+
+void
+mark(Client *c)
+{
+  XSetWindowBorderWidth(dpy, c->win, bw);
+  //XSetWindowBorder(dpy, c->win, mcol);
+}
+
 void
 setfocus(Client *c)
 {
@@ -173,12 +202,14 @@ setfocus(Client *c)
     return;
   XSetInputFocus(dpy, c->win, RevertToPointerRoot, CurrentTime);
   XSetWindowBorderWidth(dpy, c->win, bw);
+  //XSetWindowBorder(dpy, c->win, fcol);
 }
 
 void
 focus(Client *c)
 {
   if((focused)) {
+    unfocus(focused);
     if ((c->next)) {
       c->prev->next = c->next;
       c->next->prev = c->prev;
