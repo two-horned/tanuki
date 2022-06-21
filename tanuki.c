@@ -8,18 +8,84 @@
 #include"types.h"
 #include"config.h"
 
+/* XEvent handler */
+static void clientmessage(XEvent *e);
+static void configurenotify(XEvent *e);
+static void configurerequest(XEvent *e);
+static void maprequest(XEvent *e);
+static void unmapnotify(XEvent *e);
+static void expose(XEvent *e);
+static void focusin(XEvent *e);
+static void enternotify(XEvent *e);
+
+/* Client managment */
 static Client * wintoclient(Window w);
 static void setfocus(Client *c);
 static void focus(Client *c);
+
+/* main */
 static void setup(void);
 static void run(void);
 
 static int screen;
 static int running = 1;
+static const XEvent * handler[LASTEvent] = {
+  [EnterNotify]      = enternotify,
+  [FocusIn]          = focusin,
+  [Expose]           = expose,
+  [UnmapNotify]      = unmapnotify,
+  [MapRequest]       = maprequest,
+  [ConfigureRequest] = configurerequest,
+  [ConfigureNotify]  = configurenotify,
+  [ClientMessage]    = clientmessage,
+
+};
 static Client *focused;
 static Display *dpy;
 static Window root;
 
+/* XEvent handler */
+void
+clientmessage(XEvent *e)
+{
+}
+
+void
+configurenotify(XEvent *e)
+{
+}
+
+void
+configurerequest(XEvent *e)
+{
+}
+
+void
+maprequest(XEvent *e)
+{
+}
+
+void
+unmapnotify(XEvent *e)
+{
+}
+
+void
+expose(XEvent *e)
+{
+}
+
+void
+focusin(XEvent *e)
+{
+}
+
+void
+enternotify(XEvent *e)
+{
+}
+
+/* Client managment */
 Client *
 wintoclient(Window w)
 {
@@ -54,6 +120,7 @@ focus(Client *c)
   setfocus(c);
 }
 
+/* main */
 void
 setup()
 {
