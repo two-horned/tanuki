@@ -8,20 +8,17 @@ struct Layout {
 };
 
 struct Tag {
-  Tag *next, *prev;
   Client *clients;
 };
 
 struct Client {
   Window win;
   int x, y, w, h, oldx, oldy, oldw, oldh;
-  int isfullscreen, isfloating, hidden;
+  int isfullscreen, isfloating, ishidden;
   Client *next, *prev;
 };
 
 struct Monitor {
   Tag *tags;
   int screen, x, y, w, h;
-  Monitor *next, *prev;
-  Layout *layout;
 };
