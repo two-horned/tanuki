@@ -11,7 +11,7 @@
 #include"config.h"
 
 /* XEvent handler */
-static void clientmessage(XEvent *e);
+//static void clientmessage(XEvent *e);
 static void configurenotify(XEvent *e);
 static void configurerequest(XEvent *e);
 static void maprequest(XEvent *e);
@@ -22,6 +22,7 @@ static void enternotify(XEvent *e);
 
 /* Client managment */
 static Client * wintoclient(Window w);
+static void configure(Client *c);
 static void unmanage(Client *c);
 static void manage(Window w, XWindowAttributes wa);
 static void setfocus(Client *c);
@@ -37,7 +38,7 @@ static void setmon(void);
 static void setup(void);
 static void run(void);
 
-static int screen;
+static int screen, sw, sh;
 static int running = 1;
 static void (*handler[LASTEvent]) (XEvent *e) = {
   [EnterNotify]      = enternotify,
@@ -47,7 +48,7 @@ static void (*handler[LASTEvent]) (XEvent *e) = {
   [MapRequest]       = maprequest,
   [ConfigureRequest] = configurerequest,
   [ConfigureNotify]  = configurenotify,
-  [ClientMessage]    = clientmessage,
+//  [ClientMessage]    = clientmessage,
 };
 static Client *focused = NULL;
 static Monitor *viewed;
@@ -55,15 +56,22 @@ static Display *dpy;
 static Window root;
 
 /* XEvent handler */
+
+/*
 void
 clientmessage(XEvent *e)
 {
-}
+}*/
 
 void
 configurenotify(XEvent *e)
 {
   XConfigureEvent *ev = &e->xconfigure;
+
+  if (ev->window == root) {
+    sw = ev->width;
+    sh = ev->height;
+  }
   free(viewed);
   viewed = NULL;
   setmon();
@@ -72,6 +80,30 @@ configurenotify(XEvent *e)
 void
 configurerequest(XEvent *e)
 {
+  Client *c;
+  XConfigureRequestEvent *ev = &e->xconfigurerequest;
+  XWindowChanges wc;
+
+  wc.x = ev->x;
+  wc.y = ev->y;
+  wc.width = ev->width;
+  wc.height = ev->height;
+  wc.border_width = ev->border_width;
+  wc.sibling = ev->above;
+  wc.stack_mode = ev->detail;
+
+  XConfigureWindow(dpy, ev->window, ev->value_mask, &wc);
+
+  if (!(c = wintoclient(ev->window)))
+    return;
+  if (c->isfullscreen)
+    return;
+  age(c);
+  c->x = ev->x;
+  c->x = ev->y;
+  c->x = ev->width;
+  c->x = ev->height;
+  configure(c);
 }
 
 void
@@ -81,8 +113,11 @@ maprequest(XEvent *e)
   XMapRequestEvent *ev = &e->xmaprequest;
   Client *c;
 
-  if (!XGetWindowAttributes(dpy, ev->window, &wa) || wa.override_redirect)
+  if (!XGetWindowAttributes(dpy, ev->window, &wa))
     return;
+  if (wa.override_redirect)
+    return;
+
   manage(ev->window, wa);
 }
 
@@ -121,8 +156,10 @@ enternotify(XEvent *e)
   XEnterWindowEvent *ev = &e->xcrossing;
   Client *c;
 
-  if(!(c = wintoclient(ev->window)) || c == focused)
+  if(!(c = wintoclient(ev->window)))
       return;
+  if (c == focused)
+    return;
   focus(c);
 }
 
@@ -231,7 +268,9 @@ setmon(void)
   XineramaScreenInfo *s;
   int n;
   
-  if(!XineramaIsActive(dpy) || !(XineramaQueryScreens(dpy, &n)))
+  if (!XineramaIsActive(dpy))
+    return;
+  if (!(s = XineramaQueryScreens(dpy, &n)))
     return;
 
   viewed = malloc(sizeof(Monitor) * n);
@@ -253,12 +292,20 @@ killclient(void)
   XDestroyWindow(dpy, c->win);
 }
 
+void
+configure(Client *c)
+{
+  XMoveWindow(dpy, c->win, c->x, c->y);
+}
+
 /* main */
 void
 setup(void)
 {
   XSetWindowAttributes wa;
   screen = DefaultScreen(dpy);
+  sw = DisplayWidth(dpy, screen);
+  sh = DisplayWidth(dpy, screen);
   root = RootWindow(dpy, screen);
 
   wa.cursor = XCreateFontCursor(dpy, XC_left_ptr);
@@ -277,7 +324,7 @@ run(void)
 {
   XEvent ev;
   XSync(dpy, False);
-  while (running && !XNextEvent(dpy, &ev))
+  while (running)
     if (handler[ev.type])
       handler[ev.type](&ev);
 }
