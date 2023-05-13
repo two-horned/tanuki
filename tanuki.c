@@ -50,10 +50,11 @@ static void (*handler[LASTEvent]) (XEvent *e) = {
   [ConfigureNotify]  = configurenotify,
 //  [ClientMessage]    = clientmessage,
 };
+static Cursor cursor, mcursor;
 static Client *focused = NULL;
 static Monitor *viewed;
 static Display *dpy;
-static Window root;
+static Window root, check;
 
 /* XEvent handler */
 
@@ -190,11 +191,13 @@ manage(Window w, XWindowAttributes wa)
   c->ishidden = 0;
   c->isfloating = 0;
   c->isfullscreen = 0;
+  age(c);
 
   XSetWindowBorderWidth(dpy, w, 0);
 
-  age(c);
+  XMapWindow(dpy, c->win);
   focus(c);
+  XMoveWindow(dpy, w, 0, 0);
 }
 
 void
@@ -308,15 +311,16 @@ setup(void)
   sh = DisplayWidth(dpy, screen);
   root = RootWindow(dpy, screen);
 
-  wa.cursor = XCreateFontCursor(dpy, XC_left_ptr);
+  cursor = wa.cursor = XCreateFontCursor(dpy, XC_left_ptr);
+  mcursor = XCreateFontCursor(dpy, XC_crosshair);
   wa.event_mask = SubstructureRedirectMask|SubstructureNotifyMask|
     EnterWindowMask|LeaveWindowMask|StructureNotifyMask|PropertyChangeMask;
 
   XDefineCursor(dpy, root, wa.cursor);
-  XSelectInput(dpy, root,wa.event_mask);
 
+  check = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
   XChangeWindowAttributes(dpy, root, CWEventMask|CWCursor, &wa);
-  focused = NULL;
+  XSelectInput(dpy, root, wa.event_mask);
 }
 
 void
